@@ -1,6 +1,4 @@
 {
-  "name": "政府採購題庫－暖色精選詳解版",
-  "short_name": "採購題庫",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#fbf7f0",
@@ -17,5 +15,7 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "name": "政府採購題庫－暖色精選詳解＋AI查詢版",
+  "short_name": "採購題庫"
 }

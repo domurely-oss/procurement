@@ -337,6 +337,34 @@
     }
     .analysis-tag.correct{background:#e9f8ef;color:#24774f}
     .analysis-text{color:#68767c;font-size:14px;line-height:1.8}
+    .ai-query-box{
+      margin-top:13px;padding:14px;border:1px solid #dfd6cb;border-radius:17px;
+      background:linear-gradient(145deg,#fffdf9,#fff7ec)
+    }
+    .ai-query-title{
+      display:flex;align-items:center;gap:8px;margin-bottom:6px;
+      color:#4c3527;font-size:15px;font-weight:900
+    }
+    .ai-query-note{
+      margin-bottom:11px;color:#7a6c63;font-size:12px;line-height:1.65
+    }
+    .ai-query-actions{
+      display:grid;grid-template-columns:1fr 1fr;gap:9px
+    }
+    .ai-query-btn{
+      display:flex;align-items:center;justify-content:center;gap:7px;
+      min-height:46px;padding:9px 10px;border-radius:14px;text-decoration:none;
+      font-size:13px;font-weight:850
+    }
+    .ai-query-btn.chatgpt{
+      color:#17635b;border:1px solid #aed8ce;background:#eaf8f4
+    }
+    .ai-query-btn.gemini{
+      color:#345b91;border:1px solid #bfd0ea;background:#eef4ff
+    }
+    .ai-copy-status{
+      min-height:18px;margin-top:8px;color:#8a6a3b;font-size:11px;text-align:center
+    }
     .summary-card{
       margin-top:13px;padding:15px;border:1px solid #e4ddd5;border-radius:17px;
       background:#fffaf5
@@ -424,7 +452,7 @@
         <div class="brand-mark">🐾</div>
         <div>
           <div class="brand-title">政府採購題庫</div>
-          <div class="brand-sub">暖色精選詳解版</div>
+          <div class="brand-sub">暖色精選詳解＋AI查詢版</div>
         </div>
       </div>
       <button class="icon-btn" id="shareBtn" aria-label="分享">↗</button>
@@ -648,6 +676,59 @@ function numberOptionStatus(q){
     return skipped>1?`【曾略過 ${skipped} 次】`:"【曾略過】"
   }
   return ""
+}
+
+function buildAiQueryText(q){
+  const options=q.type==="choice"
+    ?(q.options||[]).map(o=>`(${o.key}) ${o.text}`).join("\n")
+    :"O 正確\nX 錯誤";
+
+  return [
+    "請協助分析以下政府採購題目，並依現行法規說明正確答案、各選項理由及記憶重點：",
+    "",
+    `主題：${q.category}`,
+    `題型：${labelType(q.type)}`,
+    `原題號：${q.number}`,
+    `題目：${q.question}`,
+    options?`選項：\n${options}`:"",
+    `題庫答案：${correctLabel(q,q.answer)}`,
+    q.source?`題庫法源／考點：${q.source}`:""
+  ].filter(Boolean).join("\n");
+}
+
+async function openAiQuery(service){
+  const q=currentQuestion();
+  if(!q)return;
+
+  const queryText=buildAiQueryText(q);
+  let copied=false;
+
+  try{
+    await navigator.clipboard.writeText(queryText);
+    copied=true;
+  }catch{
+    const area=document.createElement("textarea");
+    area.value=queryText;
+    area.style.position="fixed";
+    area.style.opacity="0";
+    document.body.appendChild(area);
+    area.select();
+    try{copied=document.execCommand("copy")}catch{}
+    area.remove();
+  }
+
+  const status=document.getElementById("aiCopyStatus");
+  if(status){
+    status.textContent=copied
+      ?"題目已複製，開啟後直接貼上即可查詢。"
+      :"已開啟查詢頁，請手動複製題目。";
+  }
+
+  const url=service==="chatgpt"
+    ?"https://chatgpt.com/"
+    :"https://gemini.google.com/app";
+
+  window.open(url,"_blank","noopener,noreferrer");
 }
 
 function correctLabel(q,key){
@@ -919,6 +1000,25 @@ function submitAnswer(){
       <div class="analysis-wrap">
         <div class="analysis-heading">逐選項分析</div>
         <div class="analysis-list">${analysisHtml}</div>
+        <div class="ai-query-box">
+          <div class="ai-query-title">🤖 使用 AI 進一步查詢</div>
+          <div class="ai-query-note">
+            點選後會先複製目前題目與選項，再開啟查詢網站；進入後貼上即可詢問。
+          </div>
+          <div class="ai-query-actions">
+            <a class="ai-query-btn chatgpt" href="https://chatgpt.com/"
+               target="_blank" rel="noopener noreferrer"
+               onclick="event.preventDefault();openAiQuery('chatgpt')">
+              ChatGPT 查詢
+            </a>
+            <a class="ai-query-btn gemini" href="https://gemini.google.com/app"
+               target="_blank" rel="noopener noreferrer"
+               onclick="event.preventDefault();openAiQuery('gemini')">
+              Gemini 查詢
+            </a>
+          </div>
+          <div class="ai-copy-status" id="aiCopyStatus"></div>
+        </div>
         <div class="summary-card">
           <div class="summary-title">本題總結</div>
           <p class="summary-text">${esc(q.explanation||"本題未提供補充解析。")}</p>
